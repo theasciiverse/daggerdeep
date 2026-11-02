@@ -9,3 +9,5 @@ crossterm = "0.28"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
+log = "0.4"
+env_logger = "0.11"

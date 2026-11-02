@@ -2,6 +2,7 @@ mod combat;
 mod dungeon;
 mod entity;
 mod game;
+mod logging;
 mod menu;
 mod net;
 mod protocol;
@@ -53,6 +54,9 @@ impl Drop for TermGuard {
 }
 
 fn main() -> Result<(), io::Error> {
+    // Asciiverse: session logging, RUST_LOG=debug daggerdeep 2>daggerdeep.log
+    env_logger::init();
+    log::info!("start version {}", env!("CARGO_PKG_VERSION"));
     if let Err(msg) = check_terminal_size() {
         eprintln!("Error: {}", msg);
         std::process::exit(1);
@@ -79,7 +83,17 @@ fn main() -> Result<(), io::Error> {
 }
 
 fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<(), io::Error> {
-    match menu::run_menu(terminal)? {
+    let choice = menu::run_menu(terminal)?;
+    log::info!(
+        "menu: {}",
+        match &choice {
+            MenuResult::Quit => "quit",
+            MenuResult::SinglePlayer => "single player",
+            MenuResult::Host(_) => "host",
+            MenuResult::Join(_) => "join",
+        }
+    );
+    match choice {
         MenuResult::Quit => {}
         MenuResult::SinglePlayer => {
             let mut game = Game::new(false);
@@ -100,10 +114,12 @@ fn run_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     game: &mut Game,
 ) -> Result<(), io::Error> {
+    let mut watch = logging::Watch::new();
     loop {
+        watch.observe(game);
         terminal.draw(|frame| render::render_game(frame, game))?;
 
-        if let Event::Key(key) = event::read()?
+        if let Event::Key(key) = logging::read()?
             && key.kind == KeyEventKind::Press {
             match game.state {
                 GameState::Playing => match key.code {
@@ -181,14 +197,16 @@ fn run_loop_host(
     });
 
     let mut p2_connected = true;
+    let mut watch = logging::Watch::new();
 
     loop {
+        watch.observe(game);
         terminal.draw(|frame| render::render_game(frame, game))?;
 
         let mut action_taken = false;
 
         if event::poll(Duration::from_millis(50))?
-            && let Event::Key(key) = event::read()?
+            && let Event::Key(key) = logging::read()?
             && key.kind == KeyEventKind::Press {
                 match game.state {
                     GameState::Playing => match key.code {
@@ -307,14 +325,14 @@ fn run_loop_client(
         if let Some(ref s) = net_state
             && (s.state == 1 || s.state == 2) {
                 if event::poll(Duration::from_millis(50))? {
-                    event::read()?;
+                    logging::read()?;
                     break;
                 }
                 continue;
             }
 
         if event::poll(Duration::from_millis(50))?
-            && let Event::Key(key) = event::read()?
+            && let Event::Key(key) = logging::read()?
             && key.kind == KeyEventKind::Press {
                 match key.code {
                     KeyCode::Esc => {
@@ -361,7 +379,7 @@ fn run_loop_client(
                 terminal.draw(|frame| render::render_net_state(frame, s))?;
             }
             if event::poll(Duration::from_millis(50))?
-                && let Event::Key(key) = event::read()?
+                && let Event::Key(key) = logging::read()?
                 && key.kind == KeyEventKind::Press {
                     let _ = key;
                     break;
@@ -369,7 +387,7 @@ fn run_loop_client(
         }
     } else {
         terminal.draw(render::render_disconnected)?;
-        event::read()?;
+        logging::read()?;
     }
 
     Ok(())

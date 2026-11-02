@@ -28,7 +28,7 @@ pub fn run_menu(
     loop {
         terminal.draw(render_main_menu)?;
 
-        if let Event::Key(key) = event::read()?
+        if let Event::Key(key) = crate::logging::read()?
             && key.kind == KeyEventKind::Press {
             match key.code {
                 KeyCode::Char('s') | KeyCode::Char('S') => return Ok(MenuResult::SinglePlayer),
@@ -111,7 +111,7 @@ fn run_host_screen(
         spin_idx += 1;
 
         if event::poll(Duration::from_millis(120))?
-            && let Event::Key(key) = event::read()?
+            && let Event::Key(key) = crate::logging::read()?
                 && key.kind == KeyEventKind::Press
                 && key.code == KeyCode::Esc {
                     cancel_tx.send(()).ok();
@@ -158,7 +158,7 @@ fn run_join_screen(
         let err_clone = error_msg.clone();
         terminal.draw(move |frame| render_join(frame, &input_clone, &err_clone))?;
 
-        if let Event::Key(key) = event::read()?
+        if let Event::Key(key) = crate::logging::read()?
             && key.kind == KeyEventKind::Press {
             match key.code {
                 KeyCode::Esc => return Ok(None),
