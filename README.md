@@ -1,3 +1,13 @@
+> **Play it with Asciiverse.** With [av](https://asciiverse.sh), the Asciiverse
+> client:
+>
+> ```
+> av install daggerdeep
+> av play daggerdeep
+> ```
+>
+> The original README follows.
+
 # Dagger Deep
 
 ![Dagger Deep](daggerdeep.png)
